@@ -1,0 +1,9 @@
+.ipynb_checkpoints
+.python-version
+__pycache__
+.DS_Store
+*.prm
+*.pth
+.mypy_cache
+.venv
+.vscode
