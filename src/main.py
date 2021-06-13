@@ -1,4 +1,5 @@
 import time
+import torch
 
 from libs.device import get_device
 from libs.mean_std import get_mean, get_std
@@ -14,6 +15,7 @@ from libs.tensor_based_dataset.spatial_transform import (
 
 
 def main() -> None:
+    torch.multiprocessing.set_start_method('spawn')
     device = get_device(allow_only_gpu=False)
 
     temporal_transform = get_temporal_transform(
@@ -42,11 +44,11 @@ def main() -> None:
     pil_loader = get_pil_dataloader(
         dataset_name="dummy",
         split="train",
-        min_n_frames=16,
-        batch_size=2,
+        min_n_frames=64,
+        batch_size=4,
         shuffle=True,
-        num_workers=1,
-        pin_memory=True,
+        num_workers=2,
+        pin_memory=False,
         drop_last=False,
         spatial_transform=pil_spatial_transform,
         temporal_transform=temporal_transform,
@@ -55,12 +57,12 @@ def main() -> None:
     tensor_loader = get_tensor_dataloader(
         dataset_name="dummy",
         split="train",
-        min_n_frames=16,
-        batch_size=2,
+        min_n_frames=64,
+        batch_size=4,
         shuffle=True,
-        num_workers=1,
-        pin_memory=True,
-        device=device,
+        num_workers=2,
+        pin_memory=False,
+        device=torch.device(device),
         drop_last=False,
         spatial_transform=tensor_spatial_transform,
         temporal_transform=temporal_transform,
@@ -93,7 +95,7 @@ def main() -> None:
     pil_time /= n_epochs
     tensor_time /= n_epochs
 
-    print(f"n_samples: {len(pil_loader)}\tDevice: {device}.")
+    print(f"n_samples: {len(pil_loader.dataset)}\tDevice: {device}.")
     print(f"PIL-based dataloader: Ave. {pil_time} sec.")
     print(f"tensor-based dataloader: Ave. {tensor_time} sec.")
 
