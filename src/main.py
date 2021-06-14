@@ -1,8 +1,8 @@
 import time
+
 import torch
 
 from libs.device import get_device
-from libs.mean_std import get_mean, get_std
 from libs.pil_based_dataset.dataset import get_dataloader as get_pil_dataloader
 from libs.pil_based_dataset.spatial_transform import (
     get_spatial_transform as get_pil_spatial_transform,
@@ -15,7 +15,10 @@ from libs.tensor_based_dataset.spatial_transform import (
 
 
 def main() -> None:
-    torch.multiprocessing.set_start_method('spawn')
+    # to avoid the error 'Cannot re-initialize CUDA in forked subprocess'
+    # https://github.com/pytorch/pytorch/issues/40403
+    torch.multiprocessing.set_start_method("spawn")
+
     device = get_device(allow_only_gpu=False)
 
     temporal_transform = get_temporal_transform(
@@ -62,7 +65,7 @@ def main() -> None:
         shuffle=True,
         num_workers=2,
         pin_memory=False,
-        device=torch.device(device),
+        device=device,
         drop_last=False,
         spatial_transform=tensor_spatial_transform,
         temporal_transform=temporal_transform,
@@ -95,9 +98,9 @@ def main() -> None:
     pil_time /= n_epochs
     tensor_time /= n_epochs
 
-    print(f"n_samples: {len(pil_loader.dataset)}\tDevice: {device}.")
-    print(f"PIL-based dataloader: Ave. {pil_time} sec.")
-    print(f"tensor-based dataloader: Ave. {tensor_time} sec.")
+    print(f"Device: {device}\tn_samples: {len(pil_loader.dataset)}\tn_frames: {16}.")
+    print(f"PIL-based dataloader: Ave. {pil_time: .2f} sec.")
+    print(f"tensor-based dataloader: Ave. {tensor_time: .2f} sec.")
 
 
 if __name__ == "__main__":
