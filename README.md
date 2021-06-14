@@ -34,5 +34,7 @@ tensor-based dataloader: Ave.  12.22 sec.
 ### PIL-based video loader on CPU vs Tensor-based video loader on GPU
 
 ```console
-
+Device: cuda	n_samples: 16	n_frames: 16.
+PIL-based dataloader: Ave.  1.63 sec.
+tensor-based dataloader: Ave.  4.62 sec.
 ```
