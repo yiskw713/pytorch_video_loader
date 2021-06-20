@@ -16,7 +16,7 @@ from libs.tensor_based_dataset.spatial_transform import (
 
 
 def compare_loading_time(
-    pil_loader: DataLoader, tensor_loader: DataLoader, device: str
+    pil_loader: DataLoader, tensor_loader: DataLoader, device: str,
 ) -> None:
     # measure loading time
     print("-" * 10, "Start loading data", "-" * 10)
@@ -45,7 +45,6 @@ def compare_loading_time(
     pil_time /= n_epochs
     tensor_time /= n_epochs
 
-    print(f"Device: {device}\tn_samples: {len(pil_loader.dataset)}\tn_frames: {16}.")
     print(f"PIL-based dataloader: Ave. {pil_time: .2f} sec.")
     print(f"tensor-based dataloader: Ave. {tensor_time: .2f} sec.")
 
@@ -57,9 +56,13 @@ def main() -> None:
 
     device = get_device(allow_only_gpu=False)
 
+    n_frames = 64
+    batch_size = 16
+    num_workers = 2
+
     temporal_transform = get_temporal_transform(
         temp_crop_type="random",
-        n_frames=16,
+        n_frames=n_frames,
         temp_downsamp_rate=1,
     )
 
@@ -83,11 +86,11 @@ def main() -> None:
     pil_loader = get_pil_dataloader(
         dataset_name="dummy",
         split="train",
-        min_n_frames=64,
+        min_n_frames=n_frames,
         video_format="hdf5",
-        batch_size=4,
+        batch_size=batch_size,
         shuffle=True,
-        num_workers=2,
+        num_workers=num_workers,
         pin_memory=False,
         drop_last=False,
         spatial_transform=pil_spatial_transform,
@@ -97,11 +100,11 @@ def main() -> None:
     tensor_loader = get_tensor_dataloader(
         dataset_name="dummy",
         split="train",
-        min_n_frames=64,
+        min_n_frames=n_frames,
         video_format="hdf5",
-        batch_size=4,
+        batch_size=batch_size,
         shuffle=True,
-        num_workers=2,
+        num_workers=num_workers,
         pin_memory=False,
         device=device,
         drop_last=False,
@@ -110,17 +113,21 @@ def main() -> None:
     )
 
     # measure loading time
-    print("Measuring loading time with HDF5.")
+    print("-" * 10, "Experimental settings" "-" * 10)
+    print(f"Device: {device}\tum_workers: {nun_workers}.")
+    print(f"n_data: {len(pil_loader.dataset)\tbatch_size: {batch_size}\tinput_n_frames: {n_frames}.")
+
+    print("\nMeasuring loading time with HDF5.")
     compare_loading_time(pil_loader, tensor_loader, device)
 
     pil_loader = get_pil_dataloader(
         dataset_name="dummy2",
         split="train",
-        min_n_frames=64,
+        min_n_frames=n_frames,
         video_format="jpg",
-        batch_size=4,
+        batch_size=batch_size,
         shuffle=True,
-        num_workers=2,
+        num_workers=num_workers,
         pin_memory=False,
         drop_last=False,
         spatial_transform=pil_spatial_transform,
@@ -130,11 +137,11 @@ def main() -> None:
     tensor_loader = get_tensor_dataloader(
         dataset_name="dummy2",
         split="train",
-        min_n_frames=64,
+        min_n_frames=n_frames,
         video_format="jpg",
-        batch_size=4,
+        batch_size=batch_size,
         shuffle=True,
-        num_workers=2,
+        num_workers=num_workers,
         pin_memory=False,
         device=device,
         drop_last=False,
@@ -148,3 +155,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
