@@ -113,9 +113,9 @@ def main() -> None:
     )
 
     # measure loading time
-    print("-" * 10, "Experimental settings" "-" * 10)
-    print(f"Device: {device}\tum_workers: {nun_workers}.")
-    print(f"n_data: {len(pil_loader.dataset)\tbatch_size: {batch_size}\tinput_n_frames: {n_frames}.")
+    print("-" * 10, "Experimental settings", "-" * 10)
+    print(f"Device: {device}\tnum_workers: {num_workers}.")
+    print(f"n_data: {len(pil_loader.dataset)}\tbatch_size: {batch_size}\tinput_n_frames: {n_frames}.")
 
     print("\nMeasuring loading time with HDF5.")
     compare_loading_time(pil_loader, tensor_loader, device)
