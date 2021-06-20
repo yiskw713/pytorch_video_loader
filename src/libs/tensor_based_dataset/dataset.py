@@ -1,4 +1,5 @@
 import dataclasses
+import glob
 import io
 import os
 from logging import getLogger
@@ -11,6 +12,7 @@ import torch.nn as nn
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
+from torchvision.io import read_image
 
 from ..temporal_transform import Compose as TemporalCompose
 
@@ -31,6 +33,11 @@ DATASET_CSV = {
         val="./csv/val.csv",
         test="./csv/test.csv",
     ),
+    "dummy2": DatasetCSV(
+        train="./csv/train2.csv",
+        val="./csv/val2.csv",
+        test="./csv/test2.csv",
+    ),
 }
 
 
@@ -38,6 +45,7 @@ def get_dataloader(
     dataset_name: str,
     split: str,
     min_n_frames: int,
+    video_format: str,
     batch_size: int,
     shuffle: bool,
     num_workers: int,
@@ -63,6 +71,7 @@ def get_dataloader(
     data = VideoDataset(
         csv_file,
         min_n_frames,
+        video_format,
         device=device,
         spatial_transform=spatial_transform,
         temporal_transform=temporal_transform,
@@ -87,13 +96,12 @@ def get_dataloader(
 class VideoLoader(object):
     """
     Return sequential frames in video clips corresponding to frame_indices.
-    This loader supports only .hdf5 format.
     """
 
     def __init__(
         self,
-        temporal_transform: Optional[TemporalCompose] = None,
         video_format="hdf5",
+        temporal_transform: Optional[TemporalCompose] = None,
     ) -> None:
         super().__init__()
         self.temporal_transform = temporal_transform
@@ -104,13 +112,20 @@ class VideoLoader(object):
         self.video_format = video_format
 
     def __call__(self, video_path: str) -> torch.Tensor:
+        """read videos
+        Args:
+            video_path
+        Return:
+            video: torch.Tensor (T, 3, H, W)
+        """
         if self.video_format == "hdf5":
-            video = self._read_hdf5(video_path)
-        # TODO: the other format.
+            video = self._read_video_from_hdf5(video_path)
+        else:
+            video = self._read_video_from_imgs(video_path)
 
         return video
 
-    def _read_hdf5(self, video_path: str) -> torch.Tensor:
+    def _read_video_from_hdf5(self, video_path: str) -> torch.Tensor:
         with h5py.File(video_path, "r") as f:
             video_data = f["video"]
             frame_indices = [i for i in range(len(video_data))]
@@ -126,6 +141,23 @@ class VideoLoader(object):
         video_tensor = torch.stack(video, dim=0)
         return video_tensor
 
+    def _read_video_from_imgs(self, video_dir_path: str) -> torch.Tensor:
+        image_paths = glob.glob(os.path.join(video_dir_path, "*.jpg"))
+        image_paths += glob.glob(os.path.join(video_dir_path, "*.png"))
+        image_paths.sort()
+
+        frame_indices = [i for i in range(len(image_paths))]
+        if self.temporal_transform is not None:
+            frame_indices = self.temporal_transform(frame_indices)
+
+        video = []
+        for i in frame_indices:
+            img = read_image(image_paths[i])
+            video.append(img)
+
+        video_tensor = torch.stack(video, dim=0)
+        return video_tensor
+
 
 class VideoDataset(Dataset):
     """Dataset class for Video Datset."""
@@ -134,8 +166,8 @@ class VideoDataset(Dataset):
         self,
         csv_file: str,
         min_n_frames: int,
+        video_format,
         device: str,
-        video_format="hdf5",
         spatial_transform: Optional[nn.Module] = None,
         temporal_transform: Optional[TemporalCompose] = None,
     ) -> None:

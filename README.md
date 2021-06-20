@@ -38,3 +38,8 @@ Device: cuda	n_samples: 16	n_frames: 16.
 PIL-based dataloader: Ave.  1.63 sec.
 tensor-based dataloader: Ave.  4.62 sec.
 ```
+
+## TODO
+
+- [ ] test code
+- [ ] comparison using JPG Video

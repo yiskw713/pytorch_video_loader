@@ -1,6 +1,7 @@
 import time
 
 import torch
+from torch.utils.data import DataLoader
 
 from libs.device import get_device
 from libs.pil_based_dataset.dataset import get_dataloader as get_pil_dataloader
@@ -12,6 +13,41 @@ from libs.tensor_based_dataset.dataset import get_dataloader as get_tensor_datal
 from libs.tensor_based_dataset.spatial_transform import (
     get_spatial_transform as get_tensor_spatial_transform,
 )
+
+
+def compare_loading_time(
+    pil_loader: DataLoader, tensor_loader: DataLoader, device: str
+) -> None:
+    # measure loading time
+    print("-" * 10, "Start loading data", "-" * 10)
+    n_epochs = 5
+    pil_time = 0.0
+    tensor_time = 0.0
+
+    # PIL-based dataset
+    for _ in range(n_epochs):
+        start = time.time()
+
+        for sample in pil_loader:
+            pass
+
+        pil_time += time.time() - start
+
+    # tensor-based dataset
+    for _ in range(n_epochs):
+        start = time.time()
+
+        for sample in tensor_loader:
+            pass
+
+        tensor_time += time.time() - start
+
+    pil_time /= n_epochs
+    tensor_time /= n_epochs
+
+    print(f"Device: {device}\tn_samples: {len(pil_loader.dataset)}\tn_frames: {16}.")
+    print(f"PIL-based dataloader: Ave. {pil_time: .2f} sec.")
+    print(f"tensor-based dataloader: Ave. {tensor_time: .2f} sec.")
 
 
 def main() -> None:
@@ -48,6 +84,7 @@ def main() -> None:
         dataset_name="dummy",
         split="train",
         min_n_frames=64,
+        video_format="hdf5",
         batch_size=4,
         shuffle=True,
         num_workers=2,
@@ -61,6 +98,7 @@ def main() -> None:
         dataset_name="dummy",
         split="train",
         min_n_frames=64,
+        video_format="hdf5",
         batch_size=4,
         shuffle=True,
         num_workers=2,
@@ -72,35 +110,40 @@ def main() -> None:
     )
 
     # measure loading time
-    print("-" * 10, "Start loading data", "-" * 10)
-    n_epochs = 5
-    pil_time = 0.0
-    tensor_time = 0.0
+    print("Measuring loading time with HDF5.")
+    compare_loading_time(pil_loader, tensor_loader, device)
 
-    # PIL-based dataset
-    for _ in range(n_epochs):
-        start = time.time()
+    pil_loader = get_pil_dataloader(
+        dataset_name="dummy2",
+        split="train",
+        min_n_frames=64,
+        video_format="jpg",
+        batch_size=4,
+        shuffle=True,
+        num_workers=2,
+        pin_memory=False,
+        drop_last=False,
+        spatial_transform=pil_spatial_transform,
+        temporal_transform=temporal_transform,
+    )
 
-        for sample in pil_loader:
-            pass
+    tensor_loader = get_tensor_dataloader(
+        dataset_name="dummy2",
+        split="train",
+        min_n_frames=64,
+        video_format="jpg",
+        batch_size=4,
+        shuffle=True,
+        num_workers=2,
+        pin_memory=False,
+        device=device,
+        drop_last=False,
+        spatial_transform=tensor_spatial_transform,
+        temporal_transform=temporal_transform,
+    )
 
-        pil_time += time.time() - start
-
-    # tensor-based dataset
-    for _ in range(n_epochs):
-        start = time.time()
-
-        for sample in tensor_loader:
-            pass
-
-        tensor_time += time.time() - start
-
-    pil_time /= n_epochs
-    tensor_time /= n_epochs
-
-    print(f"Device: {device}\tn_samples: {len(pil_loader.dataset)}\tn_frames: {16}.")
-    print(f"PIL-based dataloader: Ave. {pil_time: .2f} sec.")
-    print(f"tensor-based dataloader: Ave. {tensor_time: .2f} sec.")
+    print("\nMeasuring loading time with JPG images.")
+    compare_loading_time(pil_loader, tensor_loader, device)
 
 
 if __name__ == "__main__":
